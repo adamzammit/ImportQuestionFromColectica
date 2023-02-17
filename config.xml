@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <metadata>
+        <name>ImportQuestionFromColectica</name>
+        <type>plugin</type>
+        <creationDate>2023-02-13</creationDate>
+        <last_update>2023-02-13</last_update>
+        <author>Adam Zammit</author>
+        <authorUrl>https://github.com/adamzammit/ImportQuestionFromColectica</authorUrl>
+        <version>1.0.0</version>
+        <license>GPL 3.0</license>
+        <description><![CDATA[Import a question from a Colectica repository via the REST API]]></description>
+    </metadata>
+
+    <compatibility>
+        <version>4.0</version>
+        <version>3.0</version>
+    </compatibility>
+
+    <updaters disabled="disabled">
+    </updaters>
+</config>

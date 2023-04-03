@@ -38,7 +38,6 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
     public function init() {
         $this->storage = $this->get('storage_base', null, null, $this->settings['storage_base']['default']);
 		$this->subscribe('beforeControllerAction');
-        $this->subscribe('beforeSurveyBarRender');
     }
 
 
@@ -51,7 +50,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
         $subaction = $this->getEvent()->get('subaction');
         $sid = Yii::app()->getRequest()->getParam('surveyid');
 
-        if($controller=='admin' && $subaction=="newquestion") {
+        if($controller=='admin' && $subaction=="newquestion") { //3.x LTS
             $gid = Yii::app()->getRequest()->getParam('gid');
             $url = Yii::app()->createUrl(
                     'admin/pluginhelper',
@@ -68,7 +67,24 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
 				$('a[href*=\"importview\"]').after('&nbsp;<a class=\"btn btn-default\" href=\"$url\" role=\"button\"><span class=\"icon-import\"></span>Import from Colectica</a>');
 			});";
             App()->getClientScript()->registerScript('insertColecticaButton', $buttonScript, CClientScript::POS_BEGIN);
-        }
+        } else if ($controller=='questionAdministration' && $action=="create") { //5.x
+            $gid = Yii::app()->getRequest()->getParam('gid');
+            $url = Yii::app()->createUrl(
+                    'admin/pluginhelper',
+                    array(
+                        'sa' => 'sidebody',
+                        'plugin' => get_class($this),
+                        'method' => 'actionImportcolectica',
+                        'surveyId' => $sid,
+                        'gid' => $gid,
+                    )
+                );
+            //custom JS for inserting button
+			$buttonScript = "$( document ).ready(function() {
+				$('a[href*=\"importView\"]').after('&nbsp;<a class=\"btn btn-default\" href=\"$url\" role=\"button\"><span class=\"icon-import\"></span>Import from Colectica</a>');
+			});";
+            App()->getClientScript()->registerScript('insertColecticaButton', $buttonScript, CClientScript::POS_BEGIN);
+		}
 
         if(empty($sid) && Yii::app()->getRequest()->getIsPostRequest()) {
             $sid = Yii::app()->getRequest()->getPost('sid');

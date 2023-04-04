@@ -126,17 +126,44 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
 
         $gid = intval(Yii::app()->getRequest()->getParam('gid'));
         $search = Yii::app()->getRequest()->getParam('colecticasearch');
+        $instrument = Yii::app()->getRequest()->getParam('instrument');
+        $agencyid = Yii::app()->getRequest()->getParam('agencyid');
 
-        if (empty($search)) {
+        if (empty($search) && empty($instrument)) {
 	        $aData = [];
+
+			//find all instruments
+            $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query", ["itemTypes" => ["f196cc07-9c99-4725-ad55-5b34f479cf7d"], "maxResults" => "100"], "post");
 	
+            $instruments = $this->qList($apidata,'instrument');
+
 	        $aData['pluginClass'] = get_class($this);
 	        $aData['surveyId'] = intval($surveyId);
 	        $aData['gid'] = $gid;
+            $aData['instruments'] = $instruments;
 	
-            return $this->renderPartial('searchQuestion_view', $aData, true);
+            return $this->renderPartial('searchBrowseQuestion_view', $aData, true);
 
-		} else {
+        } else if (!empty($instrument) && !empty($agencyid)) {
+	        $aData = [];
+
+			//find all questions within this instrument
+            $this->refreshToken();
+            $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query/set", ["rootItem" => ["agencyId" => $agencyid, "identifier" => $instrument, "version" => "1"] , "facet" => ["itemTypes" => ["a1bb19bd-a24a-4443-8728-a6ad80eb42b8"]], "predicate" => "3fa85f64-5717-4562-b3fc-2c963f66afa6", "reverseTraversal" => false, "maxResults" => "100"], "post");
+            $questions = $this->iList($apidata,$agencyid);
+            var_dump($questions);
+
+	        $aData['pluginClass'] = get_class($this);
+	        $aData['surveyId'] = intval($surveyId);
+	        $aData['gid'] = $gid;
+            $aData['questions'] = $questions; 
+	
+            return $this->renderPartial('importQuestion_view', $aData, true);
+
+ 
+        
+        
+        } else if(!empty($search)) {
        
 			//TODO: Don't do this every time check for error first
 	        $this->refreshToken();
@@ -161,6 +188,23 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
 
 	}
   
+
+    private function iList($apidata,$agencyid)
+	{
+        $rs = json_decode($apidata);
+        $return = [];
+
+        foreach($rs as $r) {
+            $itemid = $r->Item1->Item1;
+            $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/item/$agencyid/$itemid", [], "get");
+			$a = json_decode($apidata);
+			var_dump($a);
+			die();
+            $return[$r->Identifier] = ["code" => $r->ItemName->en, "summary" => $r->Summary->en, "label" => $r->Label->en];
+        }
+
+        return $return;
+	}
  
     private function qList($apidata) 
     {
@@ -168,7 +212,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
         $return = [];
 
         foreach($rs->Results as $r) {
-            $return[$r->Identifier] = ["code" => $r->ItemName->en, "question" => $r->Summary->en];
+            $return[$r->Identifier] = ["code" => $r->ItemName->en, "summary" => $r->Summary->en, "label" => $r->Label->en, "agencyid" => $r->AgencyId];
         }
 
         return $return;
@@ -201,6 +245,8 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
         curl_setopt($curl, CURLOPT_TIMEOUT, 5);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 		$header = [];
+        $header[]  =  'Content-Type: application/json';
+        $header[]  =  'Accept: */*';
         if (isset(Yii::app()->session['ImportQuestionFromColecticaAccessToken'])) {
              $header[] = "Authorization: Bearer " . Yii::app()->session['ImportQuestionFromColecticaAccessToken'];
         }
@@ -209,12 +255,10 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
         } else if ($method == 'post') {
             curl_setopt($curl, CURLOPT_POST, true);
             curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($params));
-            $header[]  =  'Content-Type: application/json';
-            $header[]  =  'Accept: */*';
             $header[] =  'Content-Length: ' . strlen(json_encode($params));
-            curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
-            curl_setopt($curl, CURLOPT_VERBOSE, true);
         }
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
+        curl_setopt($curl, CURLOPT_VERBOSE, true);
         curl_setopt($curl, CURLOPT_URL, $url);
         $response = curl_exec($curl);
         $responseInfo = curl_getinfo($curl);

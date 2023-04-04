@@ -9,6 +9,17 @@
     <h3><?php eT("Search Colectica for a question"); ?></h3>
     <div class="row">
         <div class="col-lg-12">
+                <div class="form-group">
+                    <label class=" control-label" for='colecticainstruments'><?php eT("Choose an Instrument to Browse (or search all below)");?>
+                    </label>
+                    <div class="">
+						<ol>
+						<?php foreach($instruments as $key => $val) {
+							print "<li><a href='{$key}'>{$val['label']}</a></li>";
+						}?>
+						</ol>
+                    </div>
+                </div>
             <form>
                 <div class="form-group">
                     <label class=" control-label" for='colecticasearch'><?php eT("Search query");?>

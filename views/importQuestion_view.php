@@ -1,13 +1,9 @@
-<?php
-/**
- * This view display the page to add a new question to a controller, and to choose its group.
- * TODO : It will have to be merged with other question function such as "edit" or "copy".
- *
- */
-?>
 <div id='edit-question-body' class='side-body <?php echo getSideBodyClass(false); ?>'>
     <h3><?php eT("Import from Colectica"); ?></h3>
     <div class="row">
+		<div class="col-lg-12">
+			<p><a href='<?php echo($rurl); ?>'><?php eT("<-- Return to Browse or Search Colectica for a question"); ?></a></p>
+		</div>
         <div class="col-lg-12">
             <?php echo CHtml::form(array("admin/questions/sa/import"), 'post', array('id'=>'importquestion', 'class'=>'', 'name'=>'importquestion', 'enctype'=>'multipart/form-data','onsubmit'=>"return window.LS.validatefilename(this, '".gT("Please select a file to import!",'js')."');")); ?>
                 <div class="form-group">

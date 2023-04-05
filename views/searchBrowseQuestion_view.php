@@ -1,12 +1,5 @@
-<?php
-/**
- * This view display the page to add a new question to a controller, and to choose its group.
- * TODO : It will have to be merged with other question function such as "edit" or "copy".
- *
- */
-?>
 <div id='edit-question-body' class='side-body <?php echo getSideBodyClass(false); ?>'>
-    <h3><?php eT("Search Colectica for a question"); ?></h3>
+    <h3><?php eT("Browse or Search Colectica for a question"); ?></h3>
     <div class="row">
         <div class="col-lg-12">
                 <div class="form-group">
@@ -15,7 +8,7 @@
                     <div class="">
 						<ol>
 						<?php foreach($instruments as $key => $val) {
-							print "<li><a href='{$key}'>{$val['label']}</a></li>";
+							print "<li><a href='$burl&instrument={$key}&agencyid={$val['agencyid']}'>{$val['label']}</a></li>";
 						}?>
 						</ol>
                     </div>

@@ -37,7 +37,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
 
     public function init() {
         $this->storage = $this->get('storage_base', null, null, $this->settings['storage_base']['default']);
-		$this->subscribe('beforeControllerAction');
+        $this->subscribe('beforeControllerAction');
     }
 
 
@@ -63,9 +63,9 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
                     )
                 );
             //custom JS for inserting button
-			$buttonScript = "$( document ).ready(function() {
-				$('a[href*=\"importview\"]').after('&nbsp;<a class=\"btn btn-default\" href=\"$url\" role=\"button\"><span class=\"icon-import\"></span>Import from Colectica</a>');
-			});";
+            $buttonScript = "$( document ).ready(function() {
+                $('a[href*=\"importview\"]').after('&nbsp;<a class=\"btn btn-default\" href=\"$url\" role=\"button\"><span class=\"icon-import\"></span>Import from Colectica</a>');
+            });";
             App()->getClientScript()->registerScript('insertColecticaButton', $buttonScript, CClientScript::POS_BEGIN);
         } else if ($controller=='questionAdministration' && $action=="create") { //5.x
             $gid = Yii::app()->getRequest()->getParam('gid');
@@ -80,11 +80,11 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
                     )
                 );
             //custom JS for inserting button
-			$buttonScript = "$( document ).ready(function() {
-				$('a[href*=\"importView\"]').after('&nbsp;<a class=\"btn btn-default\" href=\"$url\" role=\"button\"><span class=\"icon-import\"></span>Import from Colectica</a>');
-			});";
+            $buttonScript = "$( document ).ready(function() {
+                $('a[href*=\"importView\"]').after('&nbsp;<a class=\"btn btn-default\" href=\"$url\" role=\"button\"><span class=\"icon-import\"></span>Import from Colectica</a>');
+            });";
             App()->getClientScript()->registerScript('insertColecticaButton', $buttonScript, CClientScript::POS_BEGIN);
-		}
+        }
 
         if(empty($sid) && Yii::app()->getRequest()->getIsPostRequest()) {
             $sid = Yii::app()->getRequest()->getPost('sid');
@@ -92,7 +92,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
         if(empty($sid)) {
             return;
         }
-	
+    
 
      //    $iSurveyID = (int) $surveyid;
       //   if (!Permission::model()->hasSurveyPermission($iSurveyID, 'surveycontent', 'import')) {
@@ -118,7 +118,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
 
 
     public function actionImportcolectica($surveyId) 
-	{
+    {
         $oSurvey = Survey::model()->findByPk($surveyId);
         if (!$oSurvey) {
             throw new CHttpException(404, gt('This survey does not seem to exist.'));
@@ -130,34 +130,51 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
         $agencyid = Yii::app()->getRequest()->getParam('agencyid');
 
         if (empty($search) && empty($instrument)) {
-	        $aData = [];
+            $aData = [];
 
-			//find all instruments
+            //find all instruments
             $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query", ["itemTypes" => ["f196cc07-9c99-4725-ad55-5b34f479cf7d"], "maxResults" => "100"], "post");
-	
+    
             $instruments = $this->qList($apidata,'instrument');
 
-	        $aData['pluginClass'] = get_class($this);
-	        $aData['surveyId'] = intval($surveyId);
-	        $aData['gid'] = $gid;
+            $aData['pluginClass'] = get_class($this);
+            $aData['surveyId'] = intval($surveyId);
+            $aData['gid'] = $gid;
             $aData['instruments'] = $instruments;
-	
+			$aData['burl'] = Yii::app()->createUrl(
+                    'admin/pluginhelper',
+                    array(
+                        'sa' => 'sidebody',
+                        'plugin' => get_class($this),
+                        'method' => 'actionImportcolectica',
+                        'surveyId' => intval($surveyId),
+                        'gid' => $gid,
+                    )
+                ); 
             return $this->renderPartial('searchBrowseQuestion_view', $aData, true);
 
         } else if (!empty($instrument) && !empty($agencyid)) {
-	        $aData = [];
+            $aData = [];
 
-			//find all questions within this instrument
+            //find all questions within this instrument
             $this->refreshToken();
-            $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query/set", ["rootItem" => ["agencyId" => $agencyid, "identifier" => $instrument, "version" => "1"] , "facet" => ["itemTypes" => ["a1bb19bd-a24a-4443-8728-a6ad80eb42b8"]], "predicate" => "3fa85f64-5717-4562-b3fc-2c963f66afa6", "reverseTraversal" => false, "maxResults" => "100"], "post");
+            $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query/set", ["rootItem" => ["agencyId" => $agencyid, "identifier" => $instrument, "version" => "1"] , "facet" => ["itemTypes" => ["a1bb19bd-a24a-4443-8728-a6ad80eb42b8"]], "predicate" => "3fa85f64-5717-4562-b3fc-2c963f66afa6", "reverseTraversal" => false, "maxResults" => "10"], "post");
             $questions = $this->iList($apidata,$agencyid);
-            var_dump($questions);
 
-	        $aData['pluginClass'] = get_class($this);
-	        $aData['surveyId'] = intval($surveyId);
-	        $aData['gid'] = $gid;
+            $aData['pluginClass'] = get_class($this);
+            $aData['surveyId'] = intval($surveyId);
+            $aData['gid'] = $gid;
             $aData['questions'] = $questions; 
-	
+            $aData['rurl'] = Yii::app()->createUrl(
+                    'admin/pluginhelper',
+                    array(
+                        'sa' => 'sidebody',
+                        'plugin' => get_class($this),
+                        'method' => 'actionImportcolectica',
+                        'surveyId' => $surveyId,
+                        'gid' => $gid,
+                    )
+                );
             return $this->renderPartial('importQuestion_view', $aData, true);
 
  
@@ -165,46 +182,53 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
         
         } else if(!empty($search)) {
        
-			//TODO: Don't do this every time check for error first
-	        $this->refreshToken();
-	        //get example list using apicall
-	        $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query", ["itemTypes" => ["a1bb19bd-a24a-4443-8728-a6ad80eb42b8"], "maxResults" => "10", "searchTerms" => [$search]], "post");
-	
-			$questions = $this->qList($apidata);
-	     
-	        $aData = [];
-	
-	        $aData['pluginClass'] = get_class($this);
-	        $aData['surveyId'] = intval($surveyId);
-	        $aData['title'] = "Import from Colectica";
-	        $aData['gid'] = $gid;
-	        $aData['questions'] = $questions; 
-	//        $aData['aSettings'] = $aSettings;
-	//        $aData['assetUrl'] = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/');
-	
-	
-	         return $this->renderPartial('importQuestion_view', $aData, true);
-		}
+            //TODO: Don't do this every time check for error first
+            $this->refreshToken();
+            //get example list using apicall
+            $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query", ["itemTypes" => ["a1bb19bd-a24a-4443-8728-a6ad80eb42b8"], "maxResults" => "100", "searchTerms" => [$search]], "post");
+    
+            $questions = $this->qList($apidata);
+         
+            $aData = [];
 
-	}
+            $aData['pluginClass'] = get_class($this);
+            $aData['surveyId'] = intval($surveyId);
+            $aData['title'] = "Import from Colectica";
+            $aData['gid'] = $gid;
+            $aData['questions'] = $questions; 
+            $aData['rurl'] = Yii::app()->createUrl(
+                    'admin/pluginhelper',
+                    array(
+                        'sa' => 'sidebody',
+                        'plugin' => get_class($this),
+                        'method' => 'actionImportcolectica',
+                        'surveyId' => $surveyId,
+                        'gid' => $gid,
+                    )
+                );
+ 
+            return $this->renderPartial('importQuestion_view', $aData, true);
+        }
+
+    }
   
 
     private function iList($apidata,$agencyid)
-	{
+    {
         $rs = json_decode($apidata);
         $return = [];
 
         foreach($rs as $r) {
             $itemid = $r->Item1->Item1;
             $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/item/$agencyid/$itemid", [], "get");
-			$a = json_decode($apidata);
-			var_dump($a);
-			die();
-            $return[$r->Identifier] = ["code" => $r->ItemName->en, "summary" => $r->Summary->en, "label" => $r->Label->en];
+            $a = json_decode($apidata);
+            $ddifragment = $a->Item;
+            $ddi = new SimpleXMLElement($ddifragment);
+            $return[$a->Identifier] = ["code" => $ddi->QuestionItem->QuestionItemName->children('r',TRUE)->String, "question" => $ddi->QuestionItem->QuestionText->LiteralText->Text];
         }
 
         return $return;
-	}
+    }
  
     private function qList($apidata) 
     {
@@ -244,7 +268,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_TIMEOUT, 5);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-		$header = [];
+        $header = [];
         $header[]  =  'Content-Type: application/json';
         $header[]  =  'Accept: */*';
         if (isset(Yii::app()->session['ImportQuestionFromColecticaAccessToken'])) {

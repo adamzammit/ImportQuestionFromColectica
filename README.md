@@ -2,7 +2,7 @@
 LimeSurvey plugin for importing questions from a Colectica repository
 
 ## Requirements
-- LimeSurvey 3.X, 5.X
+- LimeSurvey 3.X, 5.X, 6.X
 - Colectica API URL, username and password
 
 ## Installation instructions

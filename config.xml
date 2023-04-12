@@ -4,7 +4,7 @@
         <name>ImportQuestionFromColectica</name>
         <type>plugin</type>
         <creationDate>2023-02-13</creationDate>
-        <last_update>2023-02-13</last_update>
+        <last_update>2023-04-12</last_update>
         <author>Adam Zammit</author>
         <authorUrl>https://github.com/adamzammit/ImportQuestionFromColectica</authorUrl>
         <version>1.0.0</version>
@@ -13,6 +13,7 @@
     </metadata>
 
     <compatibility>
+        <version>6.0</version>
         <version>5.0</version>
         <version>4.0</version>
         <version>3.0</version>

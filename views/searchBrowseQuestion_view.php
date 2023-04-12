@@ -13,7 +13,7 @@
 						</ol>
                     </div>
                 </div>
-            <form>
+            <?php echo CHtml::beginForm();?>
                 <div class="form-group">
                     <label class=" control-label" for='colecticasearch'><?php eT("Search query");?>
                     </label>
@@ -28,7 +28,7 @@
                 <input type='hidden' name='gid' value='<?php echo $gid; ?>' />
                 <input type='hidden' name='plugin' value='ImportQuestionFromColectica' />
                 <input type='hidden' name='method' value='actionImportcolectica' />
-            </form>
+            <?php echo CHtml::endForm();?>
         </div>
     </div>
 </div>

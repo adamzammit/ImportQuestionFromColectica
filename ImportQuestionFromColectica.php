@@ -36,7 +36,6 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBas
     );
 
     public function init() {
-        $this->storage = $this->get('storage_base', null, null, $this->settings['storage_base']['default']);
         $this->subscribe('beforeControllerAction');
     }
 

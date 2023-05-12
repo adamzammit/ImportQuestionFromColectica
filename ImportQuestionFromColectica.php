@@ -10,7 +10,7 @@
  * URL: https://github.com/LimeSurvey/LimeSurvey/blob/master/application/core/plugins/AuthLDAP/AuthLDAP.php
  */
 
-class ImportQuestionFromColectica extends LimeSurvey\PluginManager\AuthPluginBase
+class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
 {
     protected $storage = 'LimeSurvey\PluginManager\DbStorage';
 

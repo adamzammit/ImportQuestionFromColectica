@@ -314,7 +314,10 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
         $return = [];
 
         foreach($rs->Results as $r) {
-            $return[$r->Identifier] = ["code" => $r->ItemName->en, "question" => $r->Summary->en, "label" => $r->Label->en, "agencyid" => $r->AgencyId];
+            $labelIterator = new ArrayIterator($r->Label);
+            $summaryIterator = new ArrayIterator($r->Summary);
+            $itemNameIterator = new ArrayIterator($r->ItemName);
+            $return[$r->Identifier] = ["code" => $itemNameIterator->current(), "question" => $summaryIterator->current(), "label" => $labelIterator->current(), "agencyid" => $r->AgencyId];
         }
 
         return $return;

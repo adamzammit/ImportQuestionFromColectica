@@ -102,7 +102,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
         } else if ($controller=='questionAdministration' && $action=="create") { //5.x
             $gid = Yii::app()->getRequest()->getParam('gid');
             if ($gid == 0) {
-                $gidresult = QuestionGroup::model()->findAllByAttributes(array('sid' => $sid, 'language' => 'en'), array('order'=>'group_order'));
+                $gidresult = QuestionGroup::model()->findAllByAttributes(array('sid' => $sid), array('order'=>'group_order'));
                 if (isset($gidresult[0]->attributes['gid'])) {
                     $gid = $gidresult[0]->attributes['gid'];
                 }

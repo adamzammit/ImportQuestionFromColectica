@@ -37,8 +37,35 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
 
     public function init() {
         $this->subscribe('beforeControllerAction');
+        $this->subscribe('newQuestionAttributes','addSourceAttribute');
+        $this->subscribe('getQuestionAttributes','addSourceAttribute');
     }
 
+    public function addSourceAttribute() {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
+        $sourceAttributes = array(
+            'sourceURL' => array(
+                'name'      => 'source_url',
+                'types'     => '15ABCDEFGHIKLMNOPQRSTUWXYZ!:;|*', /* all question types */
+                'category'  => $this->gT('Question Source'),
+                'sortorder'=>1,
+                'inputtype'=>'text',
+                'default'=>$this->gT('Question not sourced from a metadata repository'),
+                'readonly'=>true,
+                'help'=>$this->gT("The link back to the question source in the metadata respository"),
+                'caption'=>$this->gT('Question source URL'),
+            ),
+        );
+        if(method_exists($this->getEvent(),'append')) {
+            $this->getEvent()->append('questionAttributes', $sourceAttributes);
+        } else {
+            $questionAttributes=(array)$this->event->get('questionAttributes');
+            $questionAttributes=array_merge($questionAttributes,$sourceAttributes);
+            $this->event->set('questionAttributes',$questionAttributes);
+        }
+    }
 
     public function beforeControllerAction() {
         if (!$this->getEvent()) {
@@ -51,6 +78,12 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
 
         if($controller=='admin' && $subaction=="newquestion") { //3.x LTS
             $gid = Yii::app()->getRequest()->getParam('gid');
+            if ($gid == 0) {
+                $gidresult = QuestionGroup::model()->findAllByAttributes(array('sid' => $sid, 'language' => 'en'), array('order'=>'group_order'));
+                if (isset($gidresult[0]->attributes['gid'])) {
+                    $gid = $gidresult[0]->attributes['gid'];
+                }
+            }
             $url = Yii::app()->createUrl(
                 'admin/pluginhelper',
                 array(
@@ -68,6 +101,12 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
                 App()->getClientScript()->registerScript('insertColecticaButton', $buttonScript, CClientScript::POS_BEGIN);
         } else if ($controller=='questionAdministration' && $action=="create") { //5.x
             $gid = Yii::app()->getRequest()->getParam('gid');
+            if ($gid == 0) {
+                $gidresult = QuestionGroup::model()->findAllByAttributes(array('sid' => $sid, 'language' => 'en'), array('order'=>'group_order'));
+                if (isset($gidresult[0]->attributes['gid'])) {
+                    $gid = $gidresult[0]->attributes['gid'];
+                }
+            } 
             $url = Yii::app()->createUrl(
                 'admin/pluginhelper',
                 array(
@@ -145,7 +184,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
                 $insertdata['question'] = (string)$ddi->QuestionItem->QuestionText->LiteralText->Text;
                 $insertdata['title'] = (string)$ddi->QuestionItem->QuestionItemName->children('r',TRUE)->String;
                 $insertdata['help'] = ""; // <r:useratttributepair><r:attributekey>extension:QuestionInstruction</r:attributekey><r:attributevalue>HELPTEXT</r:attributevalue></r:userattributepair>
-                $insertdata['question_order'] = getMaxQuestionOrder($gid);
+                $insertdata['question_order'] = getMaxQuestionOrder($gid,$surveyId);
                 //see if there is a "codedomain" fragment, if so this is a single choice question
                 if (isset($ddi->QuestionItem->CodeDomain)) {
                     $insertdata['type'] = "L"; //list radio
@@ -174,22 +213,35 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
                 if (!$oQuestion->save()) {
                     //error importing this question
                 } else {
-                    $l10n = new QuestionL10n();
-                    $lastimportedqid = $l10n->qid = $oQuestion->qid;
-                    $l10n->language = 'en';
-                    $l10n->question = $insertdata['question'];
-                    $l10n->help = $insertdata['help'];
-                    if ($l10n->save()) {
-                        if ($insertdata['type'] == 'L') {
-                            $sortorder = 0;
-                            foreach($qanswers as $key => $val) {
-                                $oAnswer = new Answer();
-                                $oAnswer->qid = $oQuestion->qid;
-                                $oAnswer->code = $key;
-                                $oAnswer->sortorder = $sortorder;
-                                if ($oAnswer->save()) {
-                                    $sortorder++;
-                                    $oAnswer->refresh();
+                    $lastimportedqid = $oQuestion->qid;
+                    $l10saved = false;
+                    if (class_exists("QuestionL10n")) { // LimeSurvey 5.x or greater
+                        $l10n = new QuestionL10n();
+                        $l10n->qid = $oQuestion->qid;
+                        $l10n->language = 'en';
+                        $l10n->question = $insertdata['question'];
+                        $l10n->help = $insertdata['help'];
+                        if ($l10n->save()) {
+                            $l10saved = true;
+                        }
+                    }
+                    if ($insertdata['type'] == 'L') {
+                        $sortorder = 0;
+                        foreach($qanswers as $key => $val) {
+                            $oAnswer = new Answer();
+                            $oAnswer->qid = $oQuestion->qid;
+                            $oAnswer->code = $key;
+                            $oAnswer->sortorder = $sortorder;
+                            if (!$l10saved) { //3.x
+                                $oAnswer->answer = $val;
+                                $oAnswer->language = 'en';
+                                $oAnswer->scale_id = 0;
+                                $oAnswer->assessment_value = 0;
+                            }
+                            if ($oAnswer->save()) {
+                                $sortorder++;
+                                $oAnswer->refresh();
+                                if ($l10saved) {
                                     $l10n = new AnswerL10n();
                                     $l10n->aid = $oAnswer->aid;
                                     $l10n->language = 'en';
@@ -201,12 +253,23 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
                             }
                         }
                     }
+                    // insert question source attribute
+                    $oQuestionAttribute = new QuestionAttribute();
+                    $oQuestionAttribute->qid = $oQuestion->qid;
+                    $oQuestionAttribute->attribute = 'sourceURL';
+                    $oQuestionAttribute->value = $this->get('colectica_api_url', null, null, true) . "/item/$agencyid/$id";
+                    $oQuestionAttribute->save();
+
                 }
             }
 
             if ($lastimportedqid != null) {
                 //redirect to last imported question
-                Yii::app()->controller->redirect(['questionAdministration/view', 'surveyid' => $surveyId, 'gid' => $gid, 'qid' => $lastimportedqid]);
+                if(version_compare(Yii::app()->getConfig('versionnumber'),"5","<")) {
+                    Yii::app()->controller->redirect(['admin/questions/sa/view', 'surveyid' => $surveyId, 'gid' => $gid, 'qid' => $lastimportedqid]);
+                } else {
+                    Yii::app()->controller->redirect(['questionAdministration/view', 'surveyid' => $surveyId, 'gid' => $gid, 'qid' => $lastimportedqid]);
+                }
             }
 
         } else if (empty($search) && empty($instrument)) { //first action - select or search

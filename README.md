@@ -18,6 +18,7 @@ LimeSurvey plugin for importing questions from a Colectica repository
 ## Usage
 - Enable and configure the plugin
 - A new button will appear when adding a new question called "Import from Colectica". Use this to browse/search the Colectica question repository and select and add questions to LimeSurvey
+- Questions added via the plugin will now include a "Question Source" attribute which stores the URL of the question source from the Colectica repository for reference
 
 ### Example usage video
 [limesurvey-colectica-plugin-2023-06-07_15.59.54.webm](https://github.com/adamzammit/ImportQuestionFromColectica/assets/1452303/6f2c6f11-36fe-43dc-824d-cfd54cc2a40d)

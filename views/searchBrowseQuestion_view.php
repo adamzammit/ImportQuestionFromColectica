@@ -6,14 +6,14 @@
                     <label class=" control-label" for='colecticainstruments'><?php eT("Choose an Instrument to Browse (or search all below)");?>
                     </label>
                     <div class="">
-						<ol>
-						<?php foreach($instruments as $key => $val) {
-							print "<li><a href='$burl&instrument={$key}&agencyid={$val['agencyid']}'>{$val['label']}</a></li>";
-						}?>
-						</ol>
+                        <ol>
+                        <?php foreach ($instruments as $key => $val) {
+                            print "<li><a href='$burl&instrument={$key}&agencyid={$val['agencyid']}'>{$val['label']}</a></li>";
+                        }?>
+                        </ol>
                     </div>
                 </div>
-            <?php echo CHtml::beginForm();?>
+            <?php echo CHtml::beginForm(['admin/pluginhelper', 'sa' => 'sidebody', 'plugin' => 'ImportQuestionFromColectica', 'method' => 'actionSearch', 'surveyId' => $surveyId, 'gid' => $gid]);?>
                 <div class="form-group">
                     <label class=" control-label" for='colecticasearch'><?php eT("Search query");?>
                     </label>
@@ -22,20 +22,7 @@
                     </div>
                 </div>
                 <input type='submit' value='<?php eT("Search Colectica"); ?>' />
-                <input type='hidden' name='action' value='searchcolectica' />
-                <input type='hidden' name='sa' value='sidebody' />
-                <input type='hidden' name='surveyId' value='<?php echo $surveyId; ?>' />
-                <input type='hidden' name='gid' value='<?php echo $gid; ?>' />
-                <input type='hidden' name='plugin' value='ImportQuestionFromColectica' />
-                <input type='hidden' name='method' value='actionImportcolectica' />
             <?php echo CHtml::endForm();?>
         </div>
     </div>
 </div>
-
-
-
-
-
-
-

@@ -1,21 +1,34 @@
 <?php
 
-/*
- * LimeSurvey Plugin for importing questions from a Colectica repository via the REST API
- * Author: Adam Zammit <adam.zammit@acspri.org.au>
- * License: GNU General Public License v3.0
+/**
+ * LimeSurvey plugin for importing questions from a Colectica repository
+ * via the REST API
+ * php version 7.4
  *
- * This plugin is based on the following LimeSurvey Plugins:
- * URL: https://github.com/LimeSurvey/LimeSurvey/blob/master/application/core/plugins/Authwebserver/Authwebserver.php
- * URL: https://github.com/LimeSurvey/LimeSurvey/blob/master/application/core/plugins/AuthLDAP/AuthLDAP.php
+ * @category Plugin
+ * @package  LimeSurvey
+ * @author   Adam Zammit <adam.zammit@acspri.org.au>
+ * @license  GPLv3 https://www.gnu.org/licenses/gpl-3.0.en.html
+ * @link     https://github.com/adamzammit/ImportQuestionFromColectica
+ */
+
+/**
+ * LimeSurvey plugin for importing questions from a Colectica repository
+ * via the REST API
+ *
+ * @category Plugin
+ * @package  LimeSurvey
+ * @author   Adam Zammit <adam.zammit@acspri.org.au>
+ * @license  GPLv3 https://www.gnu.org/licenses/gpl-3.0.en.html
+ * @link     https://github.com/adamzammit/ImportQuestionFromColectica
  */
 
 class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
 {
     protected $storage = 'LimeSurvey\PluginManager\DbStorage';
 
-    static protected $description = 'Allow users to import questions from a Colectica repository via the REST API';
-    static protected $name = 'ImportQuestionFromColectica';
+    protected static $description = 'Allow users to import questions from a Colectica repository via the REST API';
+    protected static $name = 'ImportQuestionFromColectica';
 
     protected $settings = array(
         'colectica_api_url' => array(
@@ -35,13 +48,25 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
         ),
     );
 
-    public function init() {
+    /**
+     * Set subscribed actions for this plugin
+     *
+     * @return none
+     */
+    public function init()
+    {
         $this->subscribe('beforeControllerAction');
-        $this->subscribe('newQuestionAttributes','addSourceAttribute');
-        $this->subscribe('getQuestionAttributes','addSourceAttribute');
+        $this->subscribe('newQuestionAttributes', 'addSourceAttribute');
+        $this->subscribe('getQuestionAttributes', 'addSourceAttribute');
     }
 
-    public function addSourceAttribute() {
+    /**
+     * Adds the sourceURL attribute to all question types
+     *
+     * @return none
+     */
+    public function addSourceAttribute()
+    {
         if (!$this->getEvent()) {
             throw new CHttpException(403);
         }
@@ -50,24 +75,30 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
                 'name'      => 'source_url',
                 'types'     => '15ABCDEFGHIKLMNOPQRSTUWXYZ!:;|*', /* all question types */
                 'category'  => $this->gT('Question Source'),
-                'sortorder'=>1,
-                'inputtype'=>'text',
-                'default'=>$this->gT('Question not sourced from a metadata repository'),
-                'readonly'=>true,
-                'help'=>$this->gT("The link back to the question source in the metadata respository"),
-                'caption'=>$this->gT('Question source URL'),
+                'sortorder' => 1,
+                'inputtype' => 'text',
+                'default'   => $this->gT('Question not sourced from a metadata repository'),
+                'readonly'  => true,
+                'help'      => $this->gT("The link back to the question source in the metadata respository"),
+                'caption'   => $this->gT('Question source URL'),
             ),
         );
-        if(method_exists($this->getEvent(),'append')) {
+        if (method_exists($this->getEvent(), 'append')) {
             $this->getEvent()->append('questionAttributes', $sourceAttributes);
         } else {
-            $questionAttributes=(array)$this->event->get('questionAttributes');
-            $questionAttributes=array_merge($questionAttributes,$sourceAttributes);
-            $this->event->set('questionAttributes',$questionAttributes);
+            $questionAttributes = (array)$this->event->get('questionAttributes');
+            $questionAttributes = array_merge($questionAttributes, $sourceAttributes);
+            $this->event->set('questionAttributes', $questionAttributes);
         }
     }
 
-    public function beforeControllerAction() {
+    /**
+     * Inject the link to importing from Colectica into the UI
+     *
+     * @return none
+     */
+    public function beforeControllerAction()
+    {
         if (!$this->getEvent()) {
             throw new CHttpException(403);
         }
@@ -76,10 +107,10 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
         $subaction = $this->getEvent()->get('subaction');
         $sid = Yii::app()->getRequest()->getParam('surveyid');
 
-        if($controller=='admin' && $subaction=="newquestion") { //3.x LTS
+        if ($controller == 'admin' && $subaction == "newquestion") { //3.x LTS
             $gid = Yii::app()->getRequest()->getParam('gid');
             if ($gid == 0) {
-                $gidresult = QuestionGroup::model()->findAllByAttributes(array('sid' => $sid, 'language' => 'en'), array('order'=>'group_order'));
+                $gidresult = QuestionGroup::model()->findAllByAttributes(array('sid' => $sid, 'language' => 'en'), array('order' => 'group_order'));
                 if (isset($gidresult[0]->attributes['gid'])) {
                     $gid = $gidresult[0]->attributes['gid'];
                 }
@@ -89,7 +120,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
                 array(
                     'sa' => 'sidebody',
                     'plugin' => get_class($this),
-                    'method' => 'actionImportcolectica',
+                    'method' => 'actionBrowsesearch',
                     'surveyId' => $sid,
                     'gid' => $gid,
                 )
@@ -97,22 +128,22 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
             //custom JS for inserting button
             $buttonScript = "$( document ).ready(function() {
                 $('a[href*=\"importview\"]').after('&nbsp;<a class=\"btn btn-default\" href=\"$url\" role=\"button\"><span class=\"icon-import\"></span>Import from Colectica</a>');
-        });";
-                App()->getClientScript()->registerScript('insertColecticaButton', $buttonScript, CClientScript::POS_BEGIN);
-        } else if ($controller=='questionAdministration' && $action=="create") { //5.x
+                });";
+            App()->getClientScript()->registerScript('insertColecticaButton', $buttonScript, CClientScript::POS_BEGIN);
+        } elseif ($controller == 'questionAdministration' && $action == "create") { //5.x
             $gid = Yii::app()->getRequest()->getParam('gid');
             if ($gid == 0) {
-                $gidresult = QuestionGroup::model()->findAllByAttributes(array('sid' => $sid), array('order'=>'group_order'));
+                $gidresult = QuestionGroup::model()->findAllByAttributes(array('sid' => $sid), array('order' => 'group_order'));
                 if (isset($gidresult[0]->attributes['gid'])) {
                     $gid = $gidresult[0]->attributes['gid'];
                 }
-            } 
+            }
             $url = Yii::app()->createUrl(
                 'admin/pluginhelper',
                 array(
                     'sa' => 'sidebody',
                     'plugin' => get_class($this),
-                    'method' => 'actionImportcolectica',
+                    'method' => 'actionBrowsesearch',
                     'surveyId' => $sid,
                     'gid' => $gid,
                 )
@@ -120,58 +151,175 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
             //custom JS for inserting button
             $buttonScript = "$( document ).ready(function() {
                 $('a[href*=\"importView\"]').after('&nbsp;<a class=\"btn btn-default\" href=\"$url\" role=\"button\"><span class=\"icon-import\"></span>Import from Colectica</a>');
-        });";
-                App()->getClientScript()->registerScript('insertColecticaButton', $buttonScript, CClientScript::POS_BEGIN);
-        }
-
-        if(empty($sid) && Yii::app()->getRequest()->getIsPostRequest()) {
-            $sid = Yii::app()->getRequest()->getPost('sid');
-        }
-        if(empty($sid)) {
-            return;
-        }
-
-
-        //    $iSurveyID = (int) $surveyid;
-        //   if (!Permission::model()->hasSurveyPermission($iSurveyID, 'surveycontent', 'import')) {
-        //        Yii::app()->session['flashmessage'] = gT("We are sorry but you don't have permissions to do this.");
-        //       $this->getController()->redirect(array('admin/survey/sa/listquestions/surveyid/'.$iSurveyID));
-        //   }
-        if ($subaction == "importcolecticaview") {
-            $survey = Survey::model()->findByPk($sid);
-            $aData = [];
-            $aData['sidemenu']['state'] = false;
-            $aData['sidemenu']['questiongroups'] = true;
-            $aData['surveybar']['closebutton']['url'] = '/admin/survey/sa/listquestiongroups/surveyid/'.$iSurveyID; // Close button
-            $aData['surveybar']['savebutton']['form'] = true;
-            $aData['surveybar']['savebutton']['text'] = gt('Import');
-            $aData['surveyid'] = $iSurveyID;
-            $aData['groupid'] = $groupid;
-            $aData['title_bar']['title'] = $survey->currentLanguageSettings->surveyls_title." (".gT("ID").":".$iSurveyID.")";
-            $this->renderPartial('importQuestion_view', $aData);
+                });";
+            App()->getClientScript()->registerScript('insertColecticaButton', $buttonScript, CClientScript::POS_BEGIN);
         }
     }
 
-    public function actionImportcolectica($surveyId)
+    /**
+     * Select a questionnare to browse or search a repository
+     *
+     * @param $surveyId The survey id
+     *
+     * @return none
+     */
+    public function actionBrowsesearch($surveyId)
     {
         $oSurvey = Survey::model()->findByPk($surveyId);
         if (!$oSurvey) {
             throw new CHttpException(404, gt('This survey does not seem to exist.'));
         }
 
-        if(!Permission::model()->hasSurveyPermission($surveyId, 'surveycontent', 'update')) {
+        if (!Permission::model()->hasSurveyPermission($surveyId, 'surveycontent', 'update')) {
             throw new CHttpException(403, gT("You do not have permission to access this page."));
         }
 
         $gid = intval(Yii::app()->getRequest()->getParam('gid'));
-        $search = Yii::app()->getRequest()->getParam('colecticasearch');
+
+        $aData = [];
+
+        //find all instruments
+        $this->refreshToken();
+        $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query", ["itemTypes" => ["f196cc07-9c99-4725-ad55-5b34f479cf7d"], "maxResults" => "100"], "post");
+
+        $instruments = $this->qList($apidata);
+
+        $aData['pluginClass'] = get_class($this);
+        $aData['surveyId'] = intval($surveyId);
+        $aData['gid'] = $gid;
+        $aData['instruments'] = $instruments;
+        $aData['burl'] = Yii::app()->createUrl(
+            'admin/pluginhelper',
+            array(
+                'sa' => 'sidebody',
+                'plugin' => get_class($this),
+                'method' => 'actionList',
+                'surveyId' => intval($surveyId),
+                'gid' => $gid,
+            )
+        );
+        return $this->renderPartial('searchBrowseQuestion_view', $aData, true);
+    }
+
+    /**
+     * List questions based on selected instrument
+     *
+     * @param $surveyId The survey id
+     *
+     * @return none
+     */
+    public function actionList($surveyId)
+    {
+        $oSurvey = Survey::model()->findByPk($surveyId);
+        if (!$oSurvey) {
+            throw new CHttpException(404, gt('This survey does not seem to exist.'));
+        }
+
+        if (!Permission::model()->hasSurveyPermission($surveyId, 'surveycontent', 'update')) {
+            throw new CHttpException(403, gT("You do not have permission to access this page."));
+        }
+
+        $gid = intval(Yii::app()->getRequest()->getParam('gid'));
         $instrument = Yii::app()->getRequest()->getParam('instrument');
         $agencyid = Yii::app()->getRequest()->getParam('agencyid');
+
+        $aData = [];
+
+        //find all questions within this instrument
+        $this->refreshToken();
+        $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query/set", ["rootItem" => ["agencyId" => $agencyid, "identifier" => $instrument, "version" => "1"] , "facet" => ["itemTypes" => ["a1bb19bd-a24a-4443-8728-a6ad80eb42b8"]], "predicate" => "3fa85f64-5717-4562-b3fc-2c963f66afa6", "reverseTraversal" => false, "maxResults" => "10"], "post");
+        $questions = $this->iList($apidata, $agencyid);
+
+        $aData['pluginClass'] = get_class($this);
+        $aData['surveyId'] = intval($surveyId);
+        $aData['gid'] = $gid;
+        $aData['questions'] = $questions;
+        $aData['rurl'] = Yii::app()->createUrl(
+            'admin/pluginhelper',
+            array(
+                'sa' => 'sidebody',
+                'plugin' => get_class($this),
+                'method' => 'actionBrowsesearch',
+                'surveyId' => $surveyId,
+                'gid' => $gid,
+            )
+        );
+        return $this->renderPartial('importQuestion_view', $aData, true);
+    }
+
+    /**
+     * Search the repository
+     *
+     * @param $surveyId The survey id
+     *
+     * @return none
+     */
+    public function actionSearch($surveyId)
+    {
+        $oSurvey = Survey::model()->findByPk($surveyId);
+        if (!$oSurvey) {
+            throw new CHttpException(404, gt('This survey does not seem to exist.'));
+        }
+
+        if (!Permission::model()->hasSurveyPermission($surveyId, 'surveycontent', 'update')) {
+            throw new CHttpException(403, gT("You do not have permission to access this page."));
+        }
+
+        $search = Yii::app()->getRequest()->getParam('colecticasearch');
+        $gid = intval(Yii::app()->getRequest()->getParam('gid'));
+
+        //TODO: Don't do this every time check for error first
+        $this->refreshToken();
+        //get example list using apicall
+        $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query", ["itemTypes" => ["a1bb19bd-a24a-4443-8728-a6ad80eb42b8"], "maxResults" => "100", "searchTerms" => [$search]], "post");
+
+        $questions = $this->qList($apidata);
+
+        $aData = [];
+
+        $aData['pluginClass'] = get_class($this);
+        $aData['surveyId'] = intval($surveyId);
+        $aData['title'] = "Import from Colectica";
+        $aData['gid'] = $gid;
+        $aData['questions'] = $questions;
+        $aData['rurl'] = Yii::app()->createUrl(
+            'admin/pluginhelper',
+            array(
+                'sa' => 'sidebody',
+                'plugin' => get_class($this),
+                'method' => 'actionBrowsesearch',
+                'surveyId' => $surveyId,
+                'gid' => $gid,
+            )
+        );
+
+        return $this->renderPartial('importQuestion_view', $aData, true);
+    }
+
+    /**
+     * Import selected questions to a group
+     *
+     * @param $surveyId The survey id
+     *
+     * @return none
+     */
+    public function actionImport($surveyId)
+    {
+        $oSurvey = Survey::model()->findByPk($surveyId);
+        if (!$oSurvey) {
+            throw new CHttpException(404, gt('This survey does not seem to exist.'));
+        }
+
+        if (!Permission::model()->hasSurveyPermission($surveyId, 'surveycontent', 'update')) {
+            throw new CHttpException(403, gT("You do not have permission to access this page."));
+        }
+
+        $gid = intval(Yii::app()->getRequest()->getParam('gid'));
         $questions = Yii::app()->getRequest()->getParam('colecticaquestions');
 
         if (is_array($questions) && count($questions) > 0) { //Import the selected questions from the repository
             $lastimportedqid = null;
-            foreach($questions as $q) {
+            foreach ($questions as $q) {
                 $insertdata = [];
                 $insertdata['sid'] = $surveyId;
                 $insertdata['gid'] = $gid;
@@ -181,27 +329,27 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
                 $ddifragment = $a->Item;
                 $ddi = new SimpleXMLElement($ddifragment);
                 $insertdata['type'] = "S"; //short free text by default;
-                $insertdata['question'] = (string)$ddi->QuestionItem->QuestionText->LiteralText->Text;
-                $insertdata['title'] = (string)$ddi->QuestionItem->QuestionItemName->children('r',TRUE)->String;
+                $insertdata['question'] = (string) $ddi->QuestionItem->QuestionText->LiteralText->Text;
+                $insertdata['title'] = (string) $ddi->QuestionItem->QuestionItemName->children('r', true)->String;
                 $insertdata['help'] = ""; // <r:useratttributepair><r:attributekey>extension:QuestionInstruction</r:attributekey><r:attributevalue>HELPTEXT</r:attributevalue></r:userattributepair>
-                $insertdata['question_order'] = getMaxQuestionOrder($gid,$surveyId);
+                $insertdata['question_order'] = getMaxQuestionOrder($gid, $surveyId);
                 //see if there is a "codedomain" fragment, if so this is a single choice question
                 if (isset($ddi->QuestionItem->CodeDomain)) {
                     $insertdata['type'] = "L"; //list radio
                     $qanswers = [];
                     //populate answer list by finding all items in the codedomain
-                    $cid = $ddi->QuestionItem->CodeDomain->children('r',TRUE)->CodeListReference->ID;
+                    $cid = $ddi->QuestionItem->CodeDomain->children('r', true)->CodeListReference->ID;
                     $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/item/$agencyid/$cid", [], "get");
                     $a = json_decode($apidata);
                     $cddifragment = $a->Item;
                     $cddi = new SimpleXMLElement($cddifragment);
-                    foreach($cddi->CodeList->Code as $ccode) {
-                        $aid = $ccode->children('r',TRUE)->CategoryReference->ID;
+                    foreach ($cddi->CodeList->Code as $ccode) {
+                        $aid = $ccode->children('r', true)->CategoryReference->ID;
                         $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/item/$agencyid/$aid", [], "get");
                         $a = json_decode($apidata);
                         $addifragment = $a->Item;
                         $addi = new SimpleXMLElement($addifragment);
-                        $qanswers[(string)$ccode->children('r',TRUE)->Value] = (string)$addi->Category->children('r',TRUE)->Label->Content;
+                        $qanswers[(string) $ccode->children('r', true)->Value] = (string)$addi->Category->children('r', true)->Label->Content;
                     }
                 }
                 //add the question to the current $gid in $surveyId
@@ -227,7 +375,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
                     }
                     if ($insertdata['type'] == 'L') {
                         $sortorder = 0;
-                        foreach($qanswers as $key => $val) {
+                        foreach ($qanswers as $key => $val) {
                             $oAnswer = new Answer();
                             $oAnswer->qid = $oQuestion->qid;
                             $oAnswer->code = $key;
@@ -259,124 +407,61 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
                     $oQuestionAttribute->attribute = 'sourceURL';
                     $oQuestionAttribute->value = $this->get('colectica_api_url', null, null, true) . "/item/$agencyid/$id";
                     $oQuestionAttribute->save();
-
                 }
             }
 
             if ($lastimportedqid != null) {
                 //redirect to last imported question
-                if(version_compare(Yii::app()->getConfig('versionnumber'),"5","<")) {
+                if (version_compare(Yii::app()->getConfig('versionnumber'), "5", "<")) {
                     Yii::app()->controller->redirect(['admin/questions/sa/view', 'surveyid' => $surveyId, 'gid' => $gid, 'qid' => $lastimportedqid]);
                 } else {
                     Yii::app()->controller->redirect(['questionAdministration/view', 'surveyid' => $surveyId, 'gid' => $gid, 'qid' => $lastimportedqid]);
                 }
             }
-
-        } else if (empty($search) && empty($instrument)) { //first action - select or search
-            $aData = [];
-
-            //find all instruments
-            $this->refreshToken();
-            $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query", ["itemTypes" => ["f196cc07-9c99-4725-ad55-5b34f479cf7d"], "maxResults" => "100"], "post");
-
-            $instruments = $this->qList($apidata);
-
-            $aData['pluginClass'] = get_class($this);
-            $aData['surveyId'] = intval($surveyId);
-            $aData['gid'] = $gid;
-            $aData['instruments'] = $instruments;
-            $aData['burl'] = Yii::app()->createUrl(
-                'admin/pluginhelper',
-                array(
-                    'sa' => 'sidebody',
-                    'plugin' => get_class($this),
-                    'method' => 'actionImportcolectica',
-                    'surveyId' => intval($surveyId),
-                    'gid' => $gid,
-                )
-            );
-            return $this->renderPartial('searchBrowseQuestion_view', $aData, true);
-
-        } else if (!empty($instrument) && !empty($agencyid)) { //questions by instrument browse
-            $aData = [];
-
-            //find all questions within this instrument
-            $this->refreshToken();
-            $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query/set", ["rootItem" => ["agencyId" => $agencyid, "identifier" => $instrument, "version" => "1"] , "facet" => ["itemTypes" => ["a1bb19bd-a24a-4443-8728-a6ad80eb42b8"]], "predicate" => "3fa85f64-5717-4562-b3fc-2c963f66afa6", "reverseTraversal" => false, "maxResults" => "10"], "post");
-            $questions = $this->iList($apidata,$agencyid);
-
-            $aData['pluginClass'] = get_class($this);
-            $aData['surveyId'] = intval($surveyId);
-            $aData['gid'] = $gid;
-            $aData['questions'] = $questions;
-            $aData['rurl'] = Yii::app()->createUrl(
-                'admin/pluginhelper',
-                array(
-                    'sa' => 'sidebody',
-                    'plugin' => get_class($this),
-                    'method' => 'actionImportcolectica',
-                    'surveyId' => $surveyId,
-                    'gid' => $gid,
-                )
-            );
-            return $this->renderPartial('importQuestion_view', $aData, true);
-
-        } else if(!empty($search)) { //search results
-
-            //TODO: Don't do this every time check for error first
-            $this->refreshToken();
-            //get example list using apicall
-            $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/_query", ["itemTypes" => ["a1bb19bd-a24a-4443-8728-a6ad80eb42b8"], "maxResults" => "100", "searchTerms" => [$search]], "post");
-
-            $questions = $this->qList($apidata);
-
-            $aData = [];
-
-            $aData['pluginClass'] = get_class($this);
-            $aData['surveyId'] = intval($surveyId);
-            $aData['title'] = "Import from Colectica";
-            $aData['gid'] = $gid;
-            $aData['questions'] = $questions;
-            $aData['rurl'] = Yii::app()->createUrl(
-                'admin/pluginhelper',
-                array(
-                    'sa' => 'sidebody',
-                    'plugin' => get_class($this),
-                    'method' => 'actionImportcolectica',
-                    'surveyId' => $surveyId,
-                    'gid' => $gid,
-                )
-            );
-
-            return $this->renderPartial('importQuestion_view', $aData, true);
         }
-
+        //either no questions selected or failed to import - go back to page
+        Yii::app()->setFlashMessage("Failed to import or no questions selected for import", 'error');
+        Yii::app()->controller->redirect(['admin/pluginhelper', 'surveyid' => $surveyId, 'gid' => $gid, 'method' => 'actionBrowsesearch', 'plugin' => get_class($this), 'sa' => 'sidebody']);
     }
 
-
-    private function iList($apidata,$agencyid)
+    /**
+     * Convert a Colectica JSON encoded item list to an array
+     *
+     * @param $apidata  JSON data returned from Colectica
+     * @param $agencyid The Colectica agencyid
+     *
+     * @return array    An array containing all listed items returned indexed by the item identifier
+     */
+    private function iList($apidata, $agencyid)
     {
         $rs = json_decode($apidata);
         $return = [];
 
-        foreach($rs as $r) {
+        foreach ($rs as $r) {
             $itemid = $r->Item1->Item1;
             $apidata = $this->apiCall($this->get('colectica_api_url', null, null, true) . "/api/v1/item/$agencyid/$itemid", [], "get");
             $a = json_decode($apidata);
             $ddifragment = $a->Item;
             $ddi = new SimpleXMLElement($ddifragment);
-            $return[$a->Identifier] = ["code" => $ddi->QuestionItem->QuestionItemName->children('r',TRUE)->String, "question" => $ddi->QuestionItem->QuestionText->LiteralText->Text, "agencyid" => $agencyid];
+            $return[$a->Identifier] = ["code" => $ddi->QuestionItem->QuestionItemName->children('r', true)->String, "question" => $ddi->QuestionItem->QuestionText->LiteralText->Text, "agencyid" => $agencyid];
         }
 
         return $return;
     }
 
+    /**
+     * Convert a Colectica JSON encoded question list to an array
+     *
+     * @param $apidata JSON data returned from Colectica
+     *
+     * @return array   An array containing all listed items returned indexed by the item identifier
+     */
     private function qList($apidata)
     {
         $rs = json_decode($apidata);
         $return = [];
 
-        foreach($rs->Results as $r) {
+        foreach ($rs->Results as $r) {
             $labelIterator = new ArrayIterator($r->Label);
             $summaryIterator = new ArrayIterator($r->Summary);
             $itemNameIterator = new ArrayIterator($r->ItemName);
@@ -386,13 +471,24 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
         return $return;
     }
 
-
+    /**
+     * Refresh the Colectica access token
+     *
+     * @return none
+     */
     private function refreshToken()
     {
-        $data = json_decode($this->apiCall($this->get('colectica_api_url', null, null, true) . "/token/CreateToken", ['username' => $this->get('colectica_username', null, null, true), 'password' => $this->get('colectica_password', null, null, true)],'post'));
+        $data = json_decode($this->apiCall($this->get('colectica_api_url', null, null, true) . "/token/CreateToken", ['username' => $this->get('colectica_username', null, null, true), 'password' => $this->get('colectica_password', null, null, true)], 'post'));
         Yii::app()->session->add("ImportQuestionFromColecticaAccessToken", $data->access_token);
     }
 
+    /**
+     * See if the call to Collectica was successful
+     *
+     * @param $data Array returned from the API call
+     *
+     * @return bool|string false if call failed, otherwise the json encoded string
+     */
     private function checkCallSuccess($data)
     {
         if (isset($data['http_response_code']) && $data['http_response_code'] == 401) {
@@ -403,8 +499,14 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
         }
     }
 
-    /* apiCall function
-     * source: https://write.corbpie.com/automatically-refreshing-oauth-access-tokens-with-php/
+    /**
+     * Make the api call via curl
+     *
+     * @param $url    API base URL
+     * @param $params array containing URL parameters
+     * @param $method HTTP method (get or post)
+     *
+     * @return array|string array containing HTTP response code if failed else string data
      */
     private function apiCall($url, $params = array(), $method = 'get')
     {
@@ -420,7 +522,7 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
         }
         if ($method == 'get' && !empty($params)) {
             $url = ($url . '?' . http_build_query($params));
-        } else if ($method == 'post') {
+        } elseif ($method == 'post') {
             curl_setopt($curl, CURLOPT_POST, true);
             curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($params));
             $header[] =  'Content-Length: ' . strlen(json_encode($params));
@@ -437,5 +539,4 @@ class ImportQuestionFromColectica extends LimeSurvey\PluginManager\PluginBase
         }
         return $data;
     }
-
 }

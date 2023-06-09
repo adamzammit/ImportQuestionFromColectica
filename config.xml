@@ -7,7 +7,7 @@
         <last_update>2023-06-08</last_update>
         <author>Adam Zammit</author>
         <authorUrl>https://github.com/adamzammit/ImportQuestionFromColectica</authorUrl>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
         <license>GPL 3.0</license>
         <description><![CDATA[Import a question from a Colectica repository via the REST API]]></description>
     </metadata>

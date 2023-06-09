@@ -1,20 +1,20 @@
 <div id='edit-question-body' class='side-body <?php echo getSideBodyClass(false); ?>'>
     <h3><?php eT("Import from Colectica"); ?></h3>
     <div class="row">
-		<div class="col-lg-12">
-			<p><a href='<?php echo($rurl); ?>'><?php eT("<-- Return to Browse or Search Colectica for a question"); ?></a></p>
-		</div>
         <div class="col-lg-12">
-             <?php echo CHtml::beginForm();?>
+            <p><a href='<?php echo($rurl); ?>'><?php eT("<-- Return to Browse or Search Colectica for a question"); ?></a></p>
+        </div>
+        <div class="col-lg-12">
+             <?php echo CHtml::beginForm(['admin/pluginhelper', 'sa' => 'sidebody', 'plugin' => 'ImportQuestionFromColectica', 'method' => 'actionImport', 'surveyId' => $surveyId]);?>
                 <div class="form-group">
                     <label class=" control-label" for='colecticaquestions'><?php eT("Select question(s) to import");?>
                     </label>
                     <div class="">
                         <select name='colecticaquestions[]' id='colecticaquestions[]' multiple>
-						<?php foreach($questions as $key => $val) {
-							print "<option value='{$key} {$val['agencyid']}'>[{$val['code']}] - {$val['question']}</option>";
-						}?>
-						</select>
+                        <?php foreach ($questions as $key => $val) {
+                            print "<option value='{$key} {$val['agencyid']}'>[{$val['code']}] - {$val['question']}</option>";
+                        }?>
+                        </select>
                     </div>
                 </div>
                 <div class="form-group">
@@ -26,15 +26,7 @@
                     </div>
                 </div>
                 <input type='submit' value='<?php eT("Import question(s)"); ?>' />
-                <input type='hidden' name='sid' value='<?php echo $surveyId; ?>' />
             <?php echo CHtml::endForm();?>
         </div>
     </div>
 </div>
-
-
-
-
-
-
-
